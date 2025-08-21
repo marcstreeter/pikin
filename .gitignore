@@ -1,0 +1,39 @@
+# Environment files
+.env
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+vendor/
+
+# Build artifacts
+src/main
+lambda.zip
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfplan
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+terraform/tfplan
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tilt
+.tiltbuild/

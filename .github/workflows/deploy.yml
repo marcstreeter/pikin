@@ -1,0 +1,150 @@
+name: Deploy Lambda Function
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'go.mod'
+      - 'go.sum'
+      - 'src/**'
+  workflow_dispatch:
+
+env:
+  GO_VERSION: '1.23'
+  AWS_REGION: ${{ vars.AWS_LAMBDA_REGION }}
+  FUNCTION_NAME: ${{ vars.AWS_LAMBDA_FUNCTION_NAME }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check required secrets
+        run: |
+          echo "🔍 Checking required secrets..."
+          
+          # Check AWS credentials
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
+            echo "❌ Missing AWS credentials"
+            echo "Please configure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in your repository secrets"
+            echo "NOTE: Set these secrets using the 'just' command from the root of this repository"
+            exit 1
+          fi
+          
+          # Check Lambda configuration
+          if [ -z "${{ vars.AWS_LAMBDA_FUNCTION_NAME }}" ] || [ -z "${{ vars.AWS_LAMBDA_REGION }}" ] || [ -z "${{ vars.AWS_LAMBDA_EXECUTION_ROLE_ARN }}" ]; then
+            echo "❌ Missing Lambda configuration"
+            echo "Please configure the following variables:"
+            echo "   AWS_LAMBDA_FUNCTION_NAME"
+            echo "   AWS_LAMBDA_REGION" 
+            echo "   AWS_LAMBDA_EXECUTION_ROLE_ARN"
+            echo "NOTE: Set these variables using the 'just' command from the root of this repository"
+            exit 1
+          fi
+          
+          echo "✅ All required variables are present"
+          echo "   Function: ${{ vars.AWS_LAMBDA_FUNCTION_NAME }}"
+          echo "   Region: ${{ vars.AWS_LAMBDA_REGION }}"
+          echo "   Role: ${{ vars.AWS_LAMBDA_EXECUTION_ROLE_ARN }}"
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build Lambda function
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: 0
+        run: |
+          cd src
+          go build -ldflags="-s -w" -o bootstrap main.go
+
+      - name: Package Lambda function
+        run: |
+          cd src
+          zip lambda.zip bootstrap
+          mv lambda.zip ../
+
+      - name: Deploy to AWS Lambda
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_LAMBDA_FUNCTION_NAME: ${{ vars.AWS_LAMBDA_FUNCTION_NAME }}
+          AWS_LAMBDA_REGION: ${{ vars.AWS_LAMBDA_REGION }}
+        run: |
+          # Check if function exists
+          if aws lambda get-function --function-name $AWS_LAMBDA_FUNCTION_NAME --region $AWS_LAMBDA_REGION 2>/dev/null; then
+            echo "Updating existing Lambda function..."
+            aws lambda update-function-code \
+              --function-name $AWS_LAMBDA_FUNCTION_NAME \
+              --zip-file fileb://lambda.zip \
+              --region $AWS_LAMBDA_REGION
+              
+            echo "Waiting for function code update to complete..."
+            aws lambda wait function-updated \
+              --function-name $AWS_LAMBDA_FUNCTION_NAME \
+              --region $AWS_LAMBDA_REGION
+              
+            aws lambda update-function-configuration \
+              --function-name $AWS_LAMBDA_FUNCTION_NAME \
+              --timeout 30 \
+              --memory-size 128 \
+              --environment Variables='{ENVIRONMENT="production",PROJECT="${{ vars.AWS_LAMBDA_FUNCTION_NAME }}"}' \
+              --region $AWS_LAMBDA_REGION
+          else
+            echo "Creating new Lambda function..."
+            # Note: Infrastructure should be created via Terraform first
+            # This will only work if the execution role already exists
+            aws lambda create-function \
+              --function-name $AWS_LAMBDA_FUNCTION_NAME \
+              --runtime provided.al2023 \
+              --role ${{ vars.AWS_LAMBDA_EXECUTION_ROLE_ARN }} \
+              --handler main \
+              --zip-file fileb://lambda.zip \
+              --timeout 30 \
+              --memory-size 128 \
+              --environment Variables='{ENVIRONMENT="production",PROJECT="${{ vars.AWS_LAMBDA_FUNCTION_NAME }}"}' \
+              --tags Name="${{ vars.AWS_LAMBDA_FUNCTION_NAME }}",Project="${{ vars.AWS_LAMBDA_FUNCTION_NAME }}",Environment="production" \
+              --region $AWS_LAMBDA_REGION
+          fi
+
+          {
+            echo "✅ Lambda Deployment complete"
+            echo "   - Function: ${{ vars.AWS_LAMBDA_FUNCTION_NAME }}"
+            echo "   - Region: ${{ vars.AWS_LAMBDA_REGION }}"
+            echo "   - Role: ${{ vars.AWS_LAMBDA_EXECUTION_ROLE_ARN }}"
+            echo ""
+            echo "🔗 AWS Lambda Console URL for [${{ vars.AWS_LAMBDA_FUNCTION_NAME }} Lambda Console](https://${{ vars.AWS_LAMBDA_REGION }}.console.aws.amazon.com/lambda/home?region=${{ vars.AWS_LAMBDA_REGION }}#/functions/${{ vars.AWS_LAMBDA_FUNCTION_NAME }})"
+            echo ""
+            echo "📋 Quick Actions:"
+            echo "   • View function details and logs"
+            echo "   • Test the function"
+            echo "   • Monitor metrics and performance"
+            echo ""
+          }  >> $GITHUB_STEP_SUMMARY
+
+      # - name: Test Lambda (TODO user not authorized to perform: lambda:InvokeFunction)
+      #   env:
+      #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     AWS_LAMBDA_FUNCTION_NAME: ${{ vars.AWS_LAMBDA_FUNCTION_NAME }}
+      #     AWS_LAMBDA_REGION: ${{ vars.AWS_LAMBDA_REGION }}
+      #   run: |
+      #     # Wait for function to be ready
+      #     aws lambda wait function-updated --function-name $AWS_LAMBDA_FUNCTION_NAME --region $AWS_LAMBDA_REGION
+      #     # Test the function
+      #     aws lambda invoke \
+      #       --function-name $AWS_LAMBDA_FUNCTION_NAME \
+      #       --payload '{"test": "data"}' \
+      #       /tmp/response.json \
+      #       --region $AWS_LAMBDA_REGION
+      #     cat /tmp/response.json
+          
+      - name: Cleanup
+        run: |
+          rm -f lambda.zip

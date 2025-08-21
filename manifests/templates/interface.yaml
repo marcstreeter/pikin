@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.interface.name }}
+spec:
+  replicas: {{ .Values.interface.replicas }}
+  selector:
+    matchLabels:
+      {{- toYaml .Values.interface.selectorLabels | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- toYaml .Values.interface.selectorLabels | nindent 8 }}
+    spec:
+      containers:
+      - name: {{ .Values.interface.name }}
+        image: "{{ .Values.interface.image.name }}:{{ .Values.interface.image.tag }}"
+        imagePullPolicy: {{ .Values.interface.image.pullPolicy }}
+        ports:
+        - name: {{ .Values.interface.portName }}
+          containerPort: {{ .Values.interface.port }}
+          protocol: {{ .Values.interface.protocol }}
+        {{- if .Values.interface.env }}
+        env:
+          {{- toYaml .Values.interface.env | nindent 12 }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.interface.resources | nindent 12 }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.interface.name }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.interface.port }}
+      targetPort: {{ .Values.interface.port }}
+      protocol: {{ .Values.interface.protocol }}
+      name: {{ .Values.interface.portName }}
+  selector:
+    {{- toYaml .Values.interface.selectorLabels | nindent 4 }}

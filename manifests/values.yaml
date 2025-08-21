@@ -1,0 +1,65 @@
+# Default values for 
+# This is a YAML-formatted file.
+
+# Project configuration
+project_name: "pikin"
+environment: "development"
+
+# General Lambda
+lambda:
+  env: []
+  # Add environment variables as needed
+  # env:
+  #   - name: DEBUG
+  #     value: "true"
+  selectorLabels:
+    app: "pikin"
+    service: "pikin-lambda"
+  name: "pikin-lambda"
+  image:
+    name: "pikin-lambda"
+    tag: "latest"
+    pullPolicy: "IfNotPresent"
+  replicas: 1
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+  serviceType: "ClusterIP"
+  port: 8080
+  portName: http
+  protocol: "TCP"
+  debug:
+    enabled: false
+    port: 5678
+    portName: debug
+    protocol: "TCP"
+
+interface:
+  env: []
+  # Add environment variables as needed
+  # env:
+  #   - name: DEBUG
+  #     value: "true"
+  name: "pikin-interface"
+  image:
+    name: "pikin-interface"
+    tag: "latest"
+    pullPolicy: "IfNotPresent"
+  replicas: 1
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+  selectorLabels:
+    app: "pikin"
+    service: "pikin-interface"
+  port: 80
+  portName: http
+  protocol: "TCP"

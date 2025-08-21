@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lambda Go Test API - Documentation</title>
+    <link rel="icon" href="data:,">
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@latest/dist/browser/standalone.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@scalar/api-reference@latest/dist/style.min.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        #api-reference {
+            height: 100vh;
+            width: 100vw;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 300;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Lambda Go Test API Documentation</h1>
+    </div>
+    <div id="api-reference"></div>
+    
+    <script>
+        // Wait for both DOM and Scalar library to be ready
+        function initializeApiReference() {
+            if (typeof window.Scalar !== 'undefined') {
+                const configuration = {
+                    spec: {
+                        url: './openapi.yaml'
+                    },
+                    theme: 'default'
+                };
+                
+                window.Scalar.createApiReference(document.getElementById('api-reference'), configuration);
+            } else {
+                // If library not ready, try again after a short delay
+                setTimeout(initializeApiReference, 100);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', initializeApiReference);
+    </script>
+</body>
+</html>

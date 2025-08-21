@@ -1,0 +1,10 @@
+.claude
+.env
+.git
+.gitignore
+.github
+.tool-versions
+.vscode
+Dockerfile
+README.md
+Tiltfile

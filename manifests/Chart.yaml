@@ -1,0 +1,16 @@
+apiVersion: v2
+name: pikin
+description: A Helm chart for deploying Lambda services
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - lambda
+  - aws
+  - serverless
+home: https://github.com/marcstreeter//pikin/
+sources:
+  - https://github.com/marcstreeter//pikin/
+maintainers:
+  - name: Marc Streeter
+    email: mstreeter@gmail.com 

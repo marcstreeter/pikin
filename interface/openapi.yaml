@@ -1,0 +1,61 @@
+openapi: 3.0.0
+info:
+  title: Lambda Test API
+  version: 1.0.0
+servers:
+  - url: http://localhost:18010
+    description: Local development server
+paths:
+  /2015-03-31/functions/function/invocations:
+    post:
+      summary: Test Lambda Function
+      description: Invoke the Go Lambda function with test data
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                test_message:
+                  type: string
+                  description: Test message to echo back
+                data:
+                  type: object
+                  description: Any additional data to process
+              examples:
+                basic_test:
+                  value:
+                    test_message: "Hello from Go Lambda!"
+                    data:
+                      key: "value"
+                      number: 42
+                complex_test:
+                  value:
+                    test_message: "Complex test"
+                    data:
+                      array: [1, 2, 3]
+                      nested:
+                        field: "test"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  event:
+                    type: object
+                  statusCode:
+                    type: integer
+        '500':
+          description: Error response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
