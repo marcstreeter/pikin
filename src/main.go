@@ -41,7 +41,7 @@ func lambdaHandler(ctx context.Context, request events.APIGatewayProxyRequest) (
 	}
 
 	responseData := ResponseData{
-		Message:    "Hello again from the pikin Lambda!",
+		Message:    "Hello again from the 🦞🤡🙊 pikin 🙊🤡🦞 Lambda!",
 		Event:      body,
 		StatusCode: 200,
 	}
